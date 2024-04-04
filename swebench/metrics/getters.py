@@ -1,22 +1,18 @@
 import re
+import json
+import os
+from datasets import load_from_disk, load_dataset
 
-from log_parsers import MAP_REPO_TO_PARSER, TestStatus
-
-
-# Evaluation Log Constants
-APPLY_PATCH_FAIL = ">>>>> Patch Apply Failed"
-APPLY_PATCH_PASS = ">>>>> Applied Patch"
-INSTALL_FAIL = ">>>>> Init Failed"
-INSTALL_PASS = ">>>>> Init Succeeded"
-RESET_FAILED = ">>>>> Reset Failed"
-TESTS_TIMEOUT = ">>>>> Tests Timed Out"
-TESTS_ERROR = ">>>>> Tests Errored"
-
-# Result Categories
-FAIL_TO_PASS = "FAIL_TO_PASS"
-FAIL_TO_FAIL = "FAIL_TO_FAIL"
-PASS_TO_PASS = "PASS_TO_PASS"
-PASS_TO_FAIL = "PASS_TO_FAIL"
+from swebench.metrics.constants import (
+    APPLY_PATCH_FAIL,
+    APPLY_PATCH_PASS,
+    RESET_FAILED,
+    TESTS_ERROR,
+    TESTS_TIMEOUT,
+)
+from swebench.harness.constants import KEY_INSTANCE_ID
+from swebench.metrics.log_parsers import MAP_REPO_TO_PARSER, TestStatus
+from typing import Tuple
 
 
 def get_diffs(sm_1: dict, sm_2: dict) -> dict:
@@ -41,7 +37,7 @@ def get_diffs(sm_1: dict, sm_2: dict) -> dict:
     return diff_map
 
 
-def get_logs_eval(log_fp: str) -> (dict, bool):
+def get_logs_eval(log_fp: str) -> Tuple[dict, bool]:
     """
     Retrieve evaluation results for a task instance from its corresponding log file
 
@@ -65,7 +61,7 @@ def get_logs_eval(log_fp: str) -> (dict, bool):
         return log_parser(content), True
 
 
-def get_logs_gold(log_fp: str) -> (str, str):
+def get_logs_gold(log_fp: str) -> Tuple[str, str]:
     """
     Retrieve pre-patch, post-patch test logs from a validation log file
 
@@ -92,7 +88,7 @@ get_id_from_lp = lambda x: get_file_name_from_lp(x).split(".")[0]
 get_repo_from_lp = lambda x: get_id_from_lp(x).rsplit("-", 1)[0].replace("__", "/")
 
 
-def log_path_to_sms(log_fp: str, log_parser) -> (list, bool):
+def log_path_to_sms(log_fp: str, log_parser) -> Tuple[list, bool]:
     """
     Wrapper for getting log data from log_parser file
 
@@ -128,3 +124,29 @@ test_passed = lambda case, sm: case in sm and sm[case] == TestStatus.PASSED.valu
 test_failed = lambda case, sm: case not in sm or any(
     [sm[case] == status for status in [TestStatus.FAILED.value, TestStatus.ERROR.value]]
 )
+
+
+def get_eval_refs(data_path_or_name):
+    decode_keys = False
+    if os.path.isfile(data_path_or_name):
+        if data_path_or_name.endswith(".jsonl"):
+            data = [json.loads(l) for l in open(data_path_or_name).readlines()]
+        elif data_path_or_name.endswith(".json"):
+            data = json.load(open(data_path_or_name, "r"))
+    elif os.path.isdir(data_path_or_name):
+        data = load_from_disk(data_path_or_name)
+        decode_keys = True
+    else:
+        data = load_dataset(data_path_or_name)
+        decode_keys = True
+    if isinstance(data, dict):
+        all_data = list()
+        for split in data.keys():
+            all_data.extend(data[split])
+        data = all_data
+    if decode_keys:
+        for datum in data:
+            for key in ["PASS_TO_PASS", "FAIL_TO_PASS"]:
+                datum[key] = json.loads(datum[key])
+    return {d[KEY_INSTANCE_ID]: d for d in data}
+
