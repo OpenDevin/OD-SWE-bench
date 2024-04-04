@@ -46,6 +46,7 @@ MODEL_LIMITS = {
     "gpt-4-0125-preview": 128_000,
     "deepseek-coder-6.7b-instruct": 32_000,
     "deepseek-coder-33b-instruct": 32_000,
+    "codellama-7b-instruct": 100_000
 }
 
 # The cost per token for each model input.
@@ -212,7 +213,7 @@ def get_model_id(model_name: str) -> str:
     if "deepseek" in model_name:
         return "deepseek"
     elif "codellama" in model_name:
-        return "codelllma"
+        return "codellama"
     else:
         raise ValueError(f"Unknown model name: {model_name}")
 

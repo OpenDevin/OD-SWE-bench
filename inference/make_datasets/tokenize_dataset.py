@@ -30,7 +30,8 @@ def hf_tokenize(text, tokenizer):
 
 TOKENIZER_FUNCS = {
     "cl100k": (tiktoken.get_encoding("cl100k_base"), cl100k),
-    "llama": (LlamaTokenizer.from_pretrained("togethercomputer/LLaMA-2-7B-32K"), hf_tokenize),
+    # "llama": (LlamaTokenizer.from_pretrained("togethercomputer/LLaMA-2-7B-32K"), hf_tokenize),
+    "codellama-7b-instruct": (LlamaTokenizer.from_pretrained("codellama/CodeLlama-7b-Instruct-hf"), hf_tokenize),
     "deepseek-coder-33b-instruct": (AutoTokenizer.from_pretrained("deepseek-ai/deepseek-coder-33b-instruct"), hf_tokenize),
     "deepseek-coder-6.7b-instruct": (AutoTokenizer.from_pretrained("deepseek-ai/deepseek-coder-6.7b-instruct"), hf_tokenize),
 }
