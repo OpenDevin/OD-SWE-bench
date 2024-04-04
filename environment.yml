@@ -6,7 +6,7 @@ dependencies:
     - datasets
     - tenacity
     - anthropic
-    - openai
+    - openai>=1.0.0
     - tiktoken
     - beautifulsoup4
     - chardet
@@ -16,4 +16,5 @@ dependencies:
     - requests
     - rich
     - transformers>=4.34.0
+    - sentencepiece
   - conda-forge::gh
