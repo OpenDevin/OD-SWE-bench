@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime
 from dotenv import load_dotenv
 from git import Repo
-from swebench.harness.constants import (
+from constants import (
     MAP_REPO_TO_REQS_PATHS,
     MAP_REPO_TO_ENV_YML_PATHS,
     SWE_BENCH_URL_RAW,
