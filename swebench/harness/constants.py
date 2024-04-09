@@ -159,7 +159,10 @@ MAP_VERSION_TO_INSTALL_SEABORN = {
     for k in ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.11"]
 }
 MAP_VERSION_TO_INSTALL_SEABORN.update(
-    {k: {"python": "3.9", "install": "pip install -e .[dev]"} for k in ["0.12", "0.13"]}
+    {k: {
+        "python": "3.9", 
+        "install": "pip install -e .[dev]",
+        "pip_packages": "pytest"} for k in ["0.12", "0.13"]}
 )
 
 MAP_VERSION_TO_INSTALL_PYTEST = {

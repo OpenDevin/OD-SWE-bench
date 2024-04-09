@@ -10,6 +10,9 @@ import os
 import shutil
 import subprocess
 
+import sys
+sys.path.append("../../../OD-SWE-bench")
+
 from datasets import load_dataset
 from multiprocessing import Pool
 from swebench.harness.constants import (
@@ -61,8 +64,10 @@ def main(
     predictions_path: str,
     swe_bench_tasks: str,
     log_dir: str,
+    temp_dir: str,
     testbed: str,
     conda_link: str,
+    conda_path: str,
     log_suffix: str,
     skip_existing: bool,
     timeout: int,
@@ -121,6 +126,7 @@ def main(
                 map_repo_version_to_predictions[repo] = {}
             t = tasks_map[p[KEY_INSTANCE_ID]]
             p.update(t)
+            # p["model_patch"] = t["patch"]     # test on gold patch
             version = t["version"]
             if version not in map_repo_version_to_predictions[repo]:
                 map_repo_version_to_predictions[repo][version] = []
@@ -129,19 +135,20 @@ def main(
         # For each model/repo/version, create testbed folder and save predictions
         for repo in map_repo_version_to_predictions:
             for version in map_repo_version_to_predictions[repo]:
-                # Create model/repo/version specific testbed folder
-                testbed_model_name = model
-                if len(testbed_model_name) > 50:
-                    # Hash model name for temp_dir path if too long
-                    # Issue: https://github.com/conda/conda/issues/12250
-                    testbed_model_name = deterministic_hash(testbed_model_name, 10)
-                testbed_model_repo_version_dir = os.path.join(
-                    testbed, testbed_model_name, repo, version)
-                os.makedirs(testbed_model_repo_version_dir, exist_ok=True)
+                
+                # # Create model/repo/version specific testbed folder
+                # testbed_model_name = model
+                # if len(testbed_model_name) > 50:
+                #     # Hash model name for temp_dir path if too long
+                #     # Issue: https://github.com/conda/conda/issues/12250
+                #     testbed_model_name = deterministic_hash(testbed_model_name, 10)
+                # testbed_model_repo_version_dir = os.path.join(
+                #     testbed, testbed_model_name, repo, version)
+                # os.makedirs(testbed_model_repo_version_dir, exist_ok=True)
 
                 # Create predictions file for model/repo/version
                 file_name = f"{model}_{repo}_{version}_{predictions_path.split('/')[-1]}"
-                file_path = os.path.join(testbed_model_repo_version_dir, file_name)
+                file_path = os.path.join(temp_dir, file_name)
                 if file_path.endswith(".jsonl"):
                     file_path = file_path[:-1]
 
@@ -152,10 +159,12 @@ def main(
                 args.num_workers = 1
                 args.predictions_path = file_path
                 args.skip_existing = skip_existing
-                args.temp_dir = testbed_model_repo_version_dir
+                args.temp_dir = temp_dir
+                args.testbed = testbed
                 args.timeout = timeout
                 args.verbose = verbose
                 args.conda_link = conda_link
+                args.conda_path = conda_path
 
                 # Remove predictions that have already been evaluated
                 repo_version_predictions = map_repo_version_to_predictions[repo][version]
@@ -186,7 +195,7 @@ def main(
                     json.dump(repo_version_predictions, f, indent=4)
 
                 eval_args.append(args)
-                temp_dirs.append(testbed_model_repo_version_dir)
+                temp_dirs.append(temp_dir)
 
     if len(eval_args) == 0:
         logger.info("No predictions to evaluate")
@@ -204,21 +213,24 @@ def main(
             pool.close()
             pool.join()
     finally:
-        # Clean up
-        for temp_dir in temp_dirs:
-            # Kill all processes that are using the temp directory
-            subprocess.run(f"lsof +D {temp_dir} | awk 'NR>1 {{print $2}}' | xargs kill", shell=True, capture_output=True)
-            # Remove temp directory
-            shutil.rmtree(temp_dir, ignore_errors=True)
+        pass
+        # # Clean up
+        # for temp_dir in temp_dirs:
+        #     # Kill all processes that are using the temp directory
+        #     subprocess.run(f"lsof +D {temp_dir} | awk 'NR>1 {{print $2}}' | xargs kill", shell=True, capture_output=True)
+        #     # Remove temp directory
+        #     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--predictions_path", type=str, help="Path to predictions file (must be .json)", required=True)
     parser.add_argument("--log_dir", type=str, help="Path to log directory", required=True)
+    parser.add_argument("--temp_dir", type=str, help="Path to temp directory", required=True)
     parser.add_argument("--swe_bench_tasks", type=str, help="Path to dataset file or HF datasets name", required=True)
     parser.add_argument("--testbed", type=str, help="Path to testbed directory", required=True)
     parser.add_argument("--conda_link", type=str, default=None, help="(Optional) URL to conda installation to use")
+    parser.add_argument("--conda_path", type=str, default=None, help="(Optional) Path to conda installation to use")
     parser.add_argument("--log_suffix", type=str, help="(Optional) Suffix to append to log file names", default=None)
     parser.add_argument("--skip_existing", action="store_true", help="(Optional) Skip existing logs")
     parser.add_argument("--timeout", type=int, help="(Optional) Timeout in seconds (default: 900)", default=900)

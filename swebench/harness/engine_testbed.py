@@ -1,10 +1,10 @@
 import argparse
 import json
 from context_manager import TestbedContextManager, TaskEnvContextManager
-import os
 from typing import Dict
 from utils import DotDict
 import os.path as osp
+from multiprocessing import Pool
 
 def is_json(myjson: str):
     try:
@@ -28,7 +28,7 @@ def verify_task_instances(data: Dict):
     """
     data_dict = DotDict(data)
     for task_instance in data_dict.task_instances:
-        tcm = TaskEnvContextManager(
+        with TaskEnvContextManager(
             task_instance,
             data_dict.testbed,
             data_dict.venv,
@@ -37,12 +37,10 @@ def verify_task_instances(data: Dict):
             verbose=data_dict.verbose,
             timeout=data_dict.timeout,
             log_suffix=data_dict.log_suffix,
-        )
-        tcm.__enter__()
-        print("reset_task_env: ", tcm.reset_task_env(task_instance))
-        print("run_install_task: ", tcm.run_install_task(task_instance))
-        print("apply_test_patch: ", tcm.apply_patch(task_instance["test_patch"], patch_type="test"))
-        tcm.__exit__()
+        ) as tcm:
+            print("reset_task_env: ", tcm.reset_task_env(task_instance))
+            print("run_install_task: ", tcm.run_install_task(task_instance))
+            print("apply_test_patch: ", tcm.apply_patch(task_instance["test_patch"], patch_type="test"))
 
 def setup_testbed(data: Dict):
     """
@@ -58,19 +56,29 @@ def setup_testbed(data: Dict):
             verbose: Verbose mode
     """
     data_dict = DotDict(data)
-    tcm = TestbedContextManager(
-        [data_dict.task_instances],
+    with TestbedContextManager(
+        data_dict.task_instances,
         data_dict.log_dir,
         path_conda=data_dict.conda_path,
         testbed=data_dict.testbed,
         temp_dir=data_dict.temp_dir,
         timeout=data_dict.timeout,
         verbose=data_dict.verbose,
-    )
-    tcm.__enter__()
-    distributed_task_list = tcm.get_distributed_tasks()
-    data_dict.func(distributed_task_list[0])
-    tcm.__exit__()
+    ) as tcm:
+        distributed_task_list = tcm.get_distributed_tasks()
+        for task_list in distributed_task_list:
+            print(
+                f"{task_list['testbed']}: {len(task_list['task_instances'])} instances"
+            )
+
+        if len(distributed_task_list) == 1:
+            data_dict.func(distributed_task_list[0])
+            return
+
+        pool = Pool(processes=len(distributed_task_list))
+        pool.map(data_dict.func, distributed_task_list)
+        pool.close()
+        pool.join()
     return
 
 def main(args):
@@ -86,7 +94,7 @@ def main(args):
             continue
         task_instance = item
         data_group = {
-                "task_instances": task_instance,
+                "task_instances": [task_instance],
                 "func": verify_task_instances,
                 **vars(args),
         }

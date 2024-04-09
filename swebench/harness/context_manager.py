@@ -435,7 +435,7 @@ class TestbedContextManager:
                     )
                     del group[version]
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         if self.temp_dir_work is not None:
             self.temp_dir_work.cleanup()
         if self.temp_dir_conda is not None:
@@ -641,54 +641,6 @@ class TaskEnvContextManager:
                 f.write(f"\n{INSTALL_TIMEOUT}\n")
             return False
 
-    def apply_generated_patch(self, instance: Dict) -> bool:
-        """
-        Apply generated patches to task environment
-
-        Args:
-            instance (dict): Task instance
-        Returns:
-            bool: True if patch applied successfully, False otherwise
-        """
-        patch= instance["generated_patch"]
-        if patch is None:
-            logger_taskenv.error(
-                f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] Patch is `None`"
-            )
-            return False
-
-        patch_path = os.path.join(
-            os.path.dirname(self.testbed.rstrip("/")),
-            self.testbed_name,
-            f"temp_{self.instance[KEY_INSTANCE_ID]}patch",
-        )
-        with open(patch_path, "w") as f:
-            f.write(patch)
-        original_directory = os.getcwd()
-        os.chdir(os.path.join(os.path.dirname(self.testbed.rstrip("/")), self.testbed_name))
-        apply_cmd = (f"patch --batch --fuzz=5 -p1 -i {patch_path}")
-        out_patch = self.exec(apply_cmd.split(" "), raise_error=False, check=False)
-        os.chdir(original_directory)
-        if out_patch.returncode != 0:
-            # Patch apply failed
-            logger_taskenv.error(
-                f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] apply patch failed "
-            )
-            with open(self.log_file, "a") as f:
-                f.write(f"{APPLY_PATCH_FAIL}; \nOutput:\n")
-                f.write(out_patch.stdout)
-                f.write(out_patch.stderr)
-            return False
-        # Patch apply succeeded
-        logger_taskenv.info(
-            f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] patch successful "
-        )
-        with open(self.log_file, "a") as f:
-            f.write(f"{APPLY_PATCH_PASS}\n")
-        return True
-
-
-
     def apply_patch(
         self, patch: str, patch_type: str = "", revert: bool = False
     ) -> bool:
@@ -719,30 +671,47 @@ class TaskEnvContextManager:
             f.write(patch)
 
         # Apply patch to testbed directory
+
+        # Try git command first
         apply_cmd = (
             f"git apply -v -R {patch_path}" if revert else f"git apply -v {patch_path}"
         )
         out_patch = self.exec(apply_cmd.split(" "), raise_error=False, check=False)
+        command = "git"
+
+        # If git command fails, try patch command
+        if out_patch.returncode != 0:
+            command = "patch"
+            original_directory = os.getcwd()
+            os.chdir(os.path.join(os.path.dirname(self.testbed.rstrip("/")), self.testbed_name))
+            apply_cmd = (f"patch -R --batch --fuzz=5 -p1 -i {patch_path}" if revert \
+                else f"patch --batch --fuzz=5 -p1 -i {patch_path}")
+            out_patch = self.exec(apply_cmd.split(" "), raise_error=False, check=False)
+            os.chdir(original_directory)
+
         os.remove(patch_path)
 
         log_cmd = "Revert" if revert else "Apply"
         if out_patch.returncode != 0:
             # Patch apply failed
             logger_taskenv.error(
-                f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] {log_cmd} patch failed ({patch_type})"
+                f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] {log_cmd} patch failed ({patch_type} {command})"
             )
             with open(self.log_file, "a") as f:
-                f.write(f"{APPLY_PATCH_FAIL}; ({patch_type})\nOutput:\n")
+                f.write(f"{APPLY_PATCH_FAIL}; ({patch_type} {command})\nOutput:\n")
                 f.write(out_patch.stdout)
                 f.write(out_patch.stderr)
+                if patch_type != "test" and "patching" in out_patch.stdout:
+                    # Patch has been partially applied so we should revert it.
+                    self.exec("git restore .".split(" "))
             return False
 
         # Patch apply succeeded
         logger_taskenv.info(
-            f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] {log_cmd} patch successful ({patch_type})"
+            f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}] {log_cmd} patch successful ({patch_type} {command})"
         )
         with open(self.log_file, "a") as f:
-            f.write(f"{APPLY_PATCH_PASS} ({patch_type})\n")
+            f.write(f"{APPLY_PATCH_PASS} ({patch_type} {command})\n")
         return True
 
     def run_tests_task(self, instance: Dict):
@@ -755,20 +724,14 @@ class TaskEnvContextManager:
             bool: True if test script ran successfully, False otherwise
         """
         try:
-            fail_to_pass = json.loads(instance["FAIL_TO_PASS"])
             # Run test command for task instance
             test_cmd = f"{self.cmd_activate} && {instance['test_cmd']}"
             with open(self.log_file, "a") as f:
                 f.write(f"Test Script: {test_cmd};\n")
             out_test = self.exec(
-                test_cmd, shell=True, timeout=self.timeout, check=False
+                test_cmd, shell=True, timeout=self.timeout, check=False, env=None
             )
 
-            pass_to_pass = self.get_passed_tests(out_test.stdout, fail_to_pass)
-            if(len(pass_to_pass) == len(fail_to_pass)):
-                print(f"BUG FIXED SUCCESSFULLY: {len(pass_to_pass)}/{len(fail_to_pass)}")
-            else:
-                print(f"BUG FIXED FAILED:  {len(pass_to_pass)}/{len(fail_to_pass)}")
             # Write test results to log file
             with open(self.log_file, "a") as f:
                 f.write(f"Output:\n")
@@ -778,7 +741,7 @@ class TaskEnvContextManager:
                     f.write(f"\n{TESTS_FAILED}\n")
                 else:
                     f.write(f"\n{TESTS_PASSED}\n")
-                    print("ALL TESTs PASSED!")
+                    print("ALL TESTS PASSED!")
 
             logger_taskenv.info(
                 f"[{self.testbed_name}] [{instance[KEY_INSTANCE_ID]}] Test script run successful"
@@ -801,5 +764,5 @@ class TaskEnvContextManager:
                 f.write(f"{TESTS_ERROR}: {e}")
             return False
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         os.chdir(self.cwd)

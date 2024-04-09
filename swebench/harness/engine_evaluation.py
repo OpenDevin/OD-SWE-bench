@@ -8,7 +8,7 @@ from swebench.harness.constants import (
     KEY_PREDICTION,
 )
 from swebench.harness.context_manager import TaskEnvContextManager
-from swebench.harness.engine_validation import setup_testbed
+from swebench.harness.engine_testbed import setup_testbed
 from swebench.harness.utils import (
     extract_minimal_patch,
     get_instances,
@@ -166,7 +166,7 @@ def main(args):
     if args.num_workers == 1:
         setup_testbed(data_groups[0])
         return
-
+    # Jobs of a specific version will be run in a single process
     pool = Pool(processes=args.num_workers)
     pool.map(setup_testbed, data_groups)
     pool.close()
