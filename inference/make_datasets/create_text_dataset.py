@@ -17,9 +17,9 @@ try:
     from tokenize_dataset import TOKENIZER_FUNCS
     from utils import string_to_bool
 except:
-    from .create_instance import PROMPT_FUNCTIONS, add_text_inputs
-    from .tokenize_dataset import TOKENIZER_FUNCS
-    from .utils import string_to_bool
+    from create_instance import PROMPT_FUNCTIONS, add_text_inputs
+    from tokenize_dataset import TOKENIZER_FUNCS
+    from utils import string_to_bool
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
