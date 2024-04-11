@@ -11,6 +11,24 @@ sudo apt-get update
 sudo apt-get install libffi-dev
 ```
 
+# Prepare data
+
+Get all SWE-bench test instances.
+```python
+from datasets import load_dataset
+import pandas as pd
+
+dataset = load_dataset("princeton-nlp/SWE-bench")
+test = dataset["test"].to_pandas()
+test.to_json("SOME_PATH/swe-bench-test.json", orient="records")
+```
+
+Get Devin's outputs processed for evaluations is available on [Huggingface](https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output).
+- Devin-passed `wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_passed.json`
+- Devin-failed `wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_failed.json`
+- Devin-full `wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_outputs.json`
+
+
 # Run engine testbed (optional)
 
 The `engine_testbed.py` script performs a sanity check on the repository installation and test patch application. It saves the testbeds and creates reusable conda environments.
