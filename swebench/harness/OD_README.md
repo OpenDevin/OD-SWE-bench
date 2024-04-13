@@ -12,6 +12,34 @@ sudo apt-get update
 sudo apt-get install libffi-dev
 ```
 
+## Troubleshooting
+
+If you encounter erros similar to the one below during running installation commands that use `/bin/sh`, it might be due to the shell environment.
+
+```shell
+Error stderr: /bin/sh: 5: /home/swe-bench/miniconda3/envs/sphinx-doc__sphinx__3.5/etc/conda/deactivate.d/deactivate-gxx_linux-64.sh: Syntax error: "(" unexpected
+
+Error traceback: Traceback (most recent call last):
+  File "/home/swe-bench/swebench/harness/context_manager.py", line 55, in __call__
+    output = subprocess.run(cmd, **combined_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/swe-bench/miniconda3/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '. /home/swe-bench/miniconda3/etc/profile.d/conda.sh && conda activate sphinx-doc__sphinx__3.5 && conda install gxx_linux-64 gcc_linux-64 make -y' returned non-zero exit status 2.
+```
+
+The default `/bin/sh` might not point to `bash`. Switching to `bash` can resolve this issue.
+
+```shell
+sudo ln -sfn /bin/bash /bin/sh
+```
+
+You may revert to your original shell if necessary.
+
+```shell
+sudo ln -sfn {your_default_shell} /bin/sh
+```
+
 # Prepare data
 
 Get all SWE-bench test instances.
