@@ -5,7 +5,7 @@ Please create a new, clean environment for evaluation purposes. DO NOT use the o
 ```shell
 conda create -n swe-bench-eval python==3.11.5
 conda activate swe-bench-eval
-pip install requests python-dotenv GitPython datasets pandas
+pip install requests python-dotenv GitPython datasets pandas beautifulsoup4 ghapi
 
 # for django__django__2.1
 sudo apt-get update
@@ -42,35 +42,42 @@ sudo ln -sfn {your_default_shell} /bin/sh
 
 # Prepare data
 
-Get all SWE-bench test instances.
-```python
-from datasets import load_dataset
-import pandas as pd
+To prepare the data necessary for running evaluations, run the following script.
 
-dataset = load_dataset("princeton-nlp/SWE-bench")
-test = dataset["test"].to_pandas()
-test.to_json("SOME_PATH/swe-bench-test.json", orient="records")
+```shell
+cd swebench/harness
+chmod +x prepare_data.sh
+conda activate swe-bench-eval
+./prepare_data.sh
 ```
 
-Get Devin's outputs processed for evaluations is available on [Huggingface](https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output).
-- Devin-passed `wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_passed.json`
-- Devin-failed `wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_failed.json`
-- Devin-full `wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_outputs.json`
+Below is the structure of the `eval_data` directory, which organizes the resources needed for the evaluation:
+
+```shell
+├── eval_data
+│   ├── eval_logs   # dir for evaluation logs
+│   ├── eval_temp   # temp dir for evaluation
+│   ├── instances   # dir for raw test instances
+│   ├── outputs     # dir for model/agent outputs
+│   ├── testbed_logs  # dir for engine testbed logs
+│   └── testbeds      # dir for testbeds
+```
 
 
-# Run engine testbed (optional)
+# Run engine testbed
+
+This step is actually optional, but we strongly recommend executing it first. Failing to prepare the testbeds beforehand may lead to failures in **multi-processing** evaluation.
 
 The `engine_testbed.py` script performs a sanity check on the repository installation and test patch application. It saves the testbeds and creates reusable conda environments.
 
-Navigate to the `harness` directory and execute the `engine_testbed.py` script with your arguments:
+Execute the `engine_testbed.py` script with your conda path:
 ```shell
-cd OD-SWE-bench/swebench/harness
 python engine_testbed.py \
-    --instances_path PATH_TO_swe-bench-test.json \
-    --devin_output_path PATH_TO_devin_swe_passed.json \
-    --log_dir  DIR_OF_YOUR_LOGS \
-    --conda_path PATH_TO_YOUR_CONDA \
-    --testbed DIR_OF_YOUT_TESTBED \
+    --instances_path eval_data/instances/swe-bench-test.json \
+    --devin_output_path eval_data/outputs/devin_swe_passed.json \
+    --log_dir  eval_data/testbed_logs \
+    --conda_path YOUR_CONDA_PATH \
+    --testbed eval_data/testbeds \
     --timeout 1000
 ```
 
@@ -121,24 +128,24 @@ Std. Error:
 
 # Run evaluation
 
-To evaluate predictions, use the `run_evaluation.py` script with the specified arguments.
+To evaluate `devin_swe_passed` predictions, use the `run_evaluation.py` script with your conda path.
 
 ```shell
-cd OD-SWE-bench/swebench/harness
 python run_evaluation.py \
-    --predictions_path PATH_TO_PREDICTION_FILES \
-    --swe_bench_tasks PATH_TO_swe-bench-test.json \
-    --temp_dir PATH_TO_TEMP_DIR \
-    --log_dir PATH_TO_LOG_DIR \
-    --testbed PATH_TO_TESTBED_DIR \
-    --conda_path PATH_TO_YOUR_CONDA \
+    --predictions_path eval_data/outputs/devin_swe_passed.json \
+    --swe_bench_tasks eval_data/instances/swe-bench-test.json \
+    --temp_dir eval_data/eval_temp \
+    --log_dir eval_data/eval_logs \
+    --testbed eval_data/testbeds \
+    --conda_path YOUR_CONDA_PATH \
     --num_processes 4 \
     --skip_existing \
     --timeout 1000 \
     --verbose
 ```
+> Warning ⚠️: Running the evaluation in **multi-processing** mode may lead to errors if the testbeds are not prepared. You are adviced to run engine testbed first and we will try to fix the issue.
 
-> Tip: uncomment L129 in `run_evaluation.py` to test gold patches. This is a temporary workaround and will be addressed in future updates.
+> Tip: Uncomment L129 in `run_evaluation.py` to test gold patches. This is a temporary workaround and will be addressed in future updates.
 
 Modifications differing from the original SWE-bench evaluation code include:
 - Reuse testbeds and Conda environments.
