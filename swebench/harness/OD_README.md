@@ -4,7 +4,7 @@ Please create a new, clean environment for evaluation purposes. DO NOT use the o
 
 ```shell
 conda create -n swe-bench-eval python==3.11.5
-pip install requests python-dotenv GitPython
+pip install requests python-dotenv GitPython datasets
 
 # for django__django__2.1
 sudo apt-get update
