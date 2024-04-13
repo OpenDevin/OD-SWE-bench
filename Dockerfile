@@ -11,6 +11,8 @@ RUN git config --global user.name "swebench"
 
 RUN apt update && apt install -y build-essential
 
+RUN ln -sfn /bin/bash /bin/sh
+
 # Create new user
 RUN useradd -ms /bin/bash swe-bench
 USER swe-bench
@@ -37,15 +39,10 @@ RUN conda --version \
     && conda config --append channels conda-forge
 
 # Some missing packages
-RUN pip install datasets python-dotenv gitpython
+RUN pip install datasets python-dotenv gitpython unidiff rich
 
 # Install SWE-Bench
 COPY . .
 RUN pip install -e .
-
-# RUN echo "source activate swe-bench" > ~/.bashrc
-# SHELL ["/bin/bash", "--login", "-c"]
-
-# RUN conda activate swe-bench && pip install -e .
 
 CMD ["/bin/bash"]
