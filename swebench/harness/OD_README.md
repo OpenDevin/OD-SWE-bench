@@ -3,13 +3,13 @@
 Please create a new, clean environment for evaluation purposes. DO NOT use the original `swe-bench` environment.
 
 ```shell
+sudo apt-get update
+sudo apt-get install libffi-dev
+sudo apt-get install build-essentials
+
 conda create -n swe-bench-eval python==3.11.5
 conda activate swe-bench-eval
 pip install requests python-dotenv GitPython datasets pandas beautifulsoup4 ghapi
-
-# for django__django__2.1
-sudo apt-get update
-sudo apt-get install libffi-dev
 ```
 
 ## Troubleshooting
