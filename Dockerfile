@@ -34,12 +34,8 @@ RUN conda --version \
 COPY environment.yml .
 RUN conda env create -f environment.yml
 
-RUN conda --version \
-    && conda init \
-    && conda config --append channels conda-forge
-
 # Some missing packages
-RUN pip install datasets python-dotenv gitpython unidiff rich
+RUN pip install datasets python-dotenv gitpython unidiff rich importlib
 
 # Install SWE-Bench
 COPY . .
