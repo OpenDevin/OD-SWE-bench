@@ -333,6 +333,11 @@ MAP_VERSION_TO_INSTALL_PYLINT.update({
         "astroid==3.0.0a7"
     ])} for k in ['3.0']})
 
+MAP_VERSION_TO_INSTALL_PYLINT.update({
+    k: {**MAP_VERSION_TO_INSTALL_PYLINT[k], "pip_packages": " ".join([
+        "astroid==2.12.13"
+    ])} for k in ['2.15']})
+
 MAP_VERSION_TO_INSTALL_XARRAY = {
     k: {
         "python": "3.10",
