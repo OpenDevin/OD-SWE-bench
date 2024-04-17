@@ -34,6 +34,7 @@ TOKENIZER_FUNCS = {
     "codellama-7b-instruct": (LlamaTokenizer.from_pretrained("codellama/CodeLlama-7b-Instruct-hf"), hf_tokenize),
     "deepseek-coder-33b-instruct": (AutoTokenizer.from_pretrained("deepseek-ai/deepseek-coder-33b-instruct"), hf_tokenize),
     "deepseek-coder-6.7b-instruct": (AutoTokenizer.from_pretrained("deepseek-ai/deepseek-coder-6.7b-instruct"), hf_tokenize),
+    "internlm2-chat-7b": (AutoTokenizer.from_pretrained("internlm/internlm2-chat-7b", trust_remote_code=True), hf_tokenize),
 }
 
 

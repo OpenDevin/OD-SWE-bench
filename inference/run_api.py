@@ -31,6 +31,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 dotenv.load_dotenv()
 
+OPEN_SOURCE_MODEL_LIST = (
+    "deepseek",
+    "codellama",
+    "internlm",
+)
+
 MODEL_LIMITS = {
     "claude-instant-1": 100_000,
     "claude-2": 100_000,
@@ -44,9 +50,6 @@ MODEL_LIMITS = {
     "gpt-4-0613": 8_192,
     "gpt-4-1106-preview": 128_000,
     "gpt-4-0125-preview": 128_000,
-    "deepseek-coder-6.7b-instruct": 32_000,
-    "deepseek-coder-33b-instruct": 32_000,
-    "codellama-7b-instruct": 100_000
 }
 
 # The cost per token for each model input.
@@ -210,12 +213,10 @@ def get_model_id(model_name: str) -> str:
     """Returns normalized model id from abitrary serving model name.
     E.g., abitrary_path/deepseek-coder-33b -> deepseek.
     """
-    if "deepseek" in model_name:
-        return "deepseek"
-    elif "codellama" in model_name:
-        return "codellama"
-    else:
-        raise ValueError(f"Unknown model name: {model_name}")
+    for model_id in OPEN_SOURCE_MODEL_LIST:
+        if model_id in model_name:
+            return model_id
+    raise ValueError(f"Unknown model name: {model_name}")
 
 
 def claude_tokenize(string: str, api) -> int:
@@ -302,6 +303,7 @@ def opensource_inference(
     model_args,
     existing_ids,
     max_cost,
+    context_len,
 ):
     """
     Runs inference on a dataset using the openai API.
@@ -323,10 +325,11 @@ def opensource_inference(
         api_key=openai_key,
         base_url=url
     )
+    
 
     encoding = TOKENIZER_FUNCS[model_name_or_path][0]
     test_dataset = test_dataset.filter(
-        lambda x: len(encoding(x["text"])) <= MODEL_LIMITS[model_name_or_path],
+        lambda x: len(encoding(x["text"])) <= context_len,
         desc="Filtering",
         load_from_cache_file=False,
     )
@@ -564,6 +567,7 @@ def main(
     output_dir,
     model_args,
     max_cost,
+    context_len,
 ):
     if shard_id is None and num_shards is not None:
         logger.warning(
@@ -619,8 +623,8 @@ def main(
         anthropic_inference(**inference_args)
     elif model_name_or_path.startswith("gpt"):
         openai_inference(**inference_args)
-    elif get_model_id(model_name_or_path) in ("deepseek", "codellama",):
-        opensource_inference(**inference_args)
+    elif get_model_id(model_name_or_path) in OPEN_SOURCE_MODEL_LIST:
+        opensource_inference(**inference_args, context_len=context_len)
     else:
         raise ValueError(f"Invalid model name or path {model_name_or_path}")
     logger.info(f"Done!")
@@ -644,7 +648,7 @@ if __name__ == "__main__":
         "--model_name_or_path",
         type=str,
         help="Name of API model. Update MODEL* constants in this file to add new models.",
-        choices=sorted(list(MODEL_LIMITS.keys())),
+        choices=sorted(list(MODEL_LIMITS.keys()) + list(TOKENIZER_FUNCS.keys())),
     )
     parser.add_argument(
         "--shard_id",
@@ -677,5 +681,11 @@ if __name__ == "__main__":
         default=None,
         help="Maximum cost to spend on inference.",
     )
+    parser.add_argument(
+        "--context_len",
+        type=float,
+        default=8192,
+        help="Maximum context length.",
+    ) 
     args = parser.parse_args()
     main(**vars(args))
