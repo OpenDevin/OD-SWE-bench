@@ -1,10 +1,19 @@
 import argparse
 import json
+import logging
+
 from context_manager import TestbedContextManager, TaskEnvContextManager
 from typing import Dict
+
 from utils import DotDict
 import os.path as osp
 from multiprocessing import Pool
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("engine_testbed")
+
 
 def is_json(myjson: str):
     try:
@@ -82,16 +91,41 @@ def setup_testbed(data: Dict):
     return
 
 def main(args):
-    devin_output = json.load(open(args.devin_output_path, "r"))
-    devin_instance_ids = [_["instance_id"] for _ in devin_output]
-    with open(args.instances_path, 'r', encoding='utf-8') as f:
-        instances_list =  json.load(f)
-    for item in instances_list:
+    if args.devin_output_path:
+        devin_output = json.load(open(args.devin_output_path, "r"))
+        devin_instance_ids = [_["instance_id"] for _ in devin_output]
+    else:
+        devin_instance_ids = []
+
+    instances_list = None
+    if args.instances_path:
+        with open(args.instances_path, 'r', encoding='utf-8') as f:
+            instances_list = json.load(f)
+    elif args.swe_bench_tasks:
+        from swebench import get_eval_refs
+        instances_list = list(get_eval_refs(args.swe_bench_tasks).values())
+
+    if not instances_list:
+        raise ValueError("No task instances found")
+
+    for idx, item in enumerate(instances_list):
         # if (args.instance_id != item["instance_id"]):
         #     continue
-        if item["instance_id"] not in devin_instance_ids or \
-            osp.exists(osp.join(args.log_dir, item["instance_id"] + ".log")):
+        log_file = osp.join(args.log_dir, item["instance_id"] + ".log")
+
+        if devin_instance_ids and item["instance_id"] not in devin_instance_ids:
+            print(f"[{idx}/{len(instances_list)}] Skipping {item['instance_id']} as it is not in devin's output")
             continue
+        elif osp.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                log_content = f.read()
+
+            if "Init Succeeded" in log_content:
+                print(f"[{idx}/{len(instances_list)}] Skipping {item['instance_id']} it's already initiated.")
+                continue
+        else:
+            print(f"[{idx}/{len(instances_list)}] Processing {item['instance_id']}")
+
         task_instance = item
         data_group = {
                 "task_instances": [task_instance],
@@ -103,10 +137,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--instances_path", type=str, help="task instances path", required=True)
+    parser.add_argument("--instances_path", type=str, help="task instances path", required=False)
+    parser.add_argument("--swe_bench_tasks", type=str, help="Path to dataset file or HF datasets name", required=False)
     # parser.add_argument("--instance_id", type=str, help="JSON String for an individual task instance", required=True)
     parser.add_argument("--log_dir", type=str, help="Path to log directory", required=True)
-    parser.add_argument("--devin_output_path", type=str, help="Path to devin's output", required=True)
+    parser.add_argument("--devin_output_path", type=str, help="Path to devin's output", required=False)
     parser.add_argument("--conda_path", type=str, help="(Optional) Path to miniconda3 or anaconda installation")
     parser.add_argument("--testbed", type=str, help="(Optional) Path to testbed directory")
     parser.add_argument("--venv", type=str, help="(Optional) Virtual environment for the test")
@@ -114,4 +149,5 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true", help="(Optional) Verbose mode")
     args = parser.parse_args()
     validate_args(args)
+    logger.propagate = args.verbose
     main(args)

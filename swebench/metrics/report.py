@@ -17,7 +17,7 @@ from swebench.metrics.getters import (
     get_id_from_lp,
     test_failed,
     test_passed,
-    get_eval_refs,
+    get_eval_refs, test_missed,
 )
 from swebench.metrics.metrics import (
     compute_fail_to_pass_unweighted,
@@ -63,8 +63,11 @@ def get_eval_report(
     # Calculate resolution metrics
     f2p_success = []
     f2p_failure = []
+    f2p_missed = []
     for test_case in gold_results[FAIL_TO_PASS]:
-        if test_passed(test_case, eval_sm):
+        if test_missed(test_case, eval_sm):
+            f2p_missed.append(test_case)
+        elif test_passed(test_case, eval_sm):
             # Assume silent success for now (test case not in eval_sm)
             f2p_success.append(test_case)
         elif test_failed(test_case, eval_sm):
@@ -73,8 +76,11 @@ def get_eval_report(
     # Calculate maintenance metrics
     p2p_success = []
     p2p_failure = []
+    p2p_missed = []
     for test_case in gold_results[PASS_TO_PASS]:
-        if test_passed(test_case, eval_sm):
+        if test_missed(test_case, eval_sm):
+            p2p_missed.append(test_case)
+        elif test_passed(test_case, eval_sm):
             p2p_success.append(test_case)
         elif test_failed(test_case, eval_sm):
             p2p_failure.append(test_case)
@@ -83,10 +89,12 @@ def get_eval_report(
         FAIL_TO_PASS: {
             "success": f2p_success,
             "failure": f2p_failure,
+            "missed": f2p_missed
         },
         PASS_TO_PASS: {
             "success": p2p_success,
             "failure": p2p_failure,
+            "missed": p2p_missed
         }
     }
 
