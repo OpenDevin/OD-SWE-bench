@@ -300,12 +300,15 @@ class TestbedContextManager:
                 # Get setup reference instance
                 setup_ref_instance = version_to_setup_ref[version]
 
+                # Remove existing environment if it exists
+                self.exec(f"{exec_cmd} env remove -n {env_name} -y || true", shell=True)
+
                 # Create conda environment according to install instructinos
                 pkgs = install["packages"] if "packages" in install else ""
                 if pkgs == "requirements.txt":
                     # Create environment
                     cmd = (
-                        f"{exec_cmd} create --force -n {env_name} python={install['python']} -y"
+                        f"{exec_cmd} create -n {env_name} python={install['python']} -y"
                     )
                     logger_testbed.info(
                         f"[Testbed] Creating environment {env_name}; Command: {cmd}"
@@ -331,7 +334,7 @@ class TestbedContextManager:
                         )
 
                         # `conda create` based installation
-                        cmd = f"{exec_cmd} create --force -c conda-forge -n {env_name} python={install['python']} -y"
+                        cmd = f"{exec_cmd} create -c conda-forge -n {env_name} python={install['python']} -y"
                         logger_testbed.info(
                             f"[Testbed] Creating environment {env_name}; Command: {cmd}"
                         )
@@ -352,7 +355,7 @@ class TestbedContextManager:
                         )
 
                         # `conda env create` based installation
-                        cmd = f"{exec_cmd} env create --force --file {path_to_reqs}"
+                        cmd = f"{exec_cmd} env create --file {path_to_reqs}"
                         logger_testbed.info(
                             f"[Testbed] Creating environment {env_name}; Command: {cmd}"
                         )
@@ -362,7 +365,7 @@ class TestbedContextManager:
                     os.remove(path_to_reqs)
                 else:
                     # Create environment + install dependencies
-                    cmd = f"{exec_cmd} create --force -n {env_name} python={install['python']} {pkgs} -y"
+                    cmd = f"{exec_cmd} create -n {env_name} python={install['python']} {pkgs} -y"
                     logger_testbed.info(
                         f"[Testbed] Creating environment {env_name}; Command: {cmd}"
                     )
