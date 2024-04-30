@@ -4,3 +4,7 @@ import pandas as pd
 dataset = load_dataset("princeton-nlp/SWE-bench")
 test = dataset["test"].to_pandas()
 test.to_json("eval_data/instances/swe-bench-test.json", orient="records")
+
+dataset = load_dataset("princeton-nlp/SWE-bench_Lite")
+test = dataset["test"].to_pandas()
+test.to_json("eval_data/instances/swe-bench-test-lite.json", orient="records")
