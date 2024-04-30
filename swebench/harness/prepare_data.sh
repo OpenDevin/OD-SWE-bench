@@ -12,4 +12,4 @@ python prepare_test_instances.py
 # Get Devin's outputs
 wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_passed.json -O eval_data/outputs/devin_swe_passed.json
 wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_failed.json -O eval_data/outputs/devin_swe_failed.json
-wget wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_outputs.json -O eval_data/outputs/devin_swe_full.json
+wget https://huggingface.co/datasets/OpenDevin/Devin-SWE-bench-output/raw/main/devin_swe_outputs.json -O eval_data/outputs/devin_swe_full.json
