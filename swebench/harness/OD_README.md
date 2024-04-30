@@ -73,8 +73,7 @@ The `engine_testbed.py` script performs a sanity check on the repository install
 Execute the `engine_testbed.py` script with your conda path:
 ```shell
 python engine_testbed.py \
-    --instances_path eval_data/instances/swe-bench-test.json \
-    --devin_output_path eval_data/outputs/devin_swe_passed.json \
+    --instances_path eval_data/instances/swe-bench-test-lite.json \
     --log_dir  eval_data/testbed_logs \
     --conda_path YOUR_CONDA_PATH \
     --testbed eval_data/testbeds \

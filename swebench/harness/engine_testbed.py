@@ -82,15 +82,12 @@ def setup_testbed(data: Dict):
     return
 
 def main(args):
-    devin_output = json.load(open(args.devin_output_path, "r"))
-    devin_instance_ids = [_["instance_id"] for _ in devin_output]
     with open(args.instances_path, 'r', encoding='utf-8') as f:
         instances_list =  json.load(f)
     for item in instances_list:
         # if (args.instance_id != item["instance_id"]):
         #     continue
-        if item["instance_id"] not in devin_instance_ids or \
-            osp.exists(osp.join(args.log_dir, item["instance_id"] + ".log")):
+        if osp.exists(osp.join(args.log_dir, item["instance_id"] + ".log")):
             continue
         task_instance = item
         data_group = {
@@ -106,7 +103,6 @@ if __name__ == "__main__":
     parser.add_argument("--instances_path", type=str, help="task instances path", required=True)
     # parser.add_argument("--instance_id", type=str, help="JSON String for an individual task instance", required=True)
     parser.add_argument("--log_dir", type=str, help="Path to log directory", required=True)
-    parser.add_argument("--devin_output_path", type=str, help="Path to devin's output", required=True)
     parser.add_argument("--conda_path", type=str, help="(Optional) Path to miniconda3 or anaconda installation")
     parser.add_argument("--testbed", type=str, help="(Optional) Path to testbed directory")
     parser.add_argument("--venv", type=str, help="(Optional) Virtual environment for the test")
