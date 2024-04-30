@@ -88,6 +88,7 @@ def main(args):
         # if (args.instance_id != item["instance_id"]):
         #     continue
         if osp.exists(osp.join(args.log_dir, item["instance_id"] + ".log")):
+            print(f"Task instance {item['instance_id']} already tested. Skipping")
             continue
         print(f"Setting up testbed for task instance {item['instance_id']}")
         task_instance = item
