@@ -252,8 +252,9 @@ class TestbedContextManager:
         self.exec.subprocess_args["env"] = shellenv
 
         path_activate = f"{os.path.join(self.path_conda, 'etc', 'profile.d', 'conda.sh')} && conda activate"
-        exec_type = "mamba" if "mamba" in self.path_conda else "conda"
+        exec_type = "mamba" if ("mamba" in self.path_conda or "miniforge" in self.path_conda) else "conda"
         exec_cmd = os.path.join(self.path_conda, "bin", exec_type)
+        logger_testbed.info(f"[Testbed] Using conda executable: {exec_cmd}")
         
         env_list = get_conda_env_names(exec_cmd, shellenv)
         # Set up testbed (environment, github repo) for each repo
