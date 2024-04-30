@@ -16,6 +16,7 @@ from swebench.harness.utils import (
     DotDict
 )
 from tqdm.auto import tqdm
+import subprocess
 
 
 def overwrite_ablation(tcm: TaskEnvContextManager, task_instance: dict):
@@ -134,6 +135,11 @@ def main(args):
     """
     if args.num_workers is None:
         args.num_workers = cpu_count()
+    
+    if "pylint-dev__pylint_2.15" in args.predictions_path:
+        result = subprocess.run(f". {args.conda_path}/etc/profile.d/conda.sh && conda env remove -n pylint-dev__pylint__2.15 -y", shell=True, text=True, capture_output=True)
+        print("pylint-dev__pylint_2.15 STDOUT:", result.stdout)
+        print("pylint-dev__pylint_2.15 STDERR:", result.stderr)
 
     predictions = get_instances(args.predictions_path)
 
