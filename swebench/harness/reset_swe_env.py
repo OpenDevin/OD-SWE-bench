@@ -6,8 +6,8 @@ import logging
 import os
 from tqdm.auto import tqdm
 
-import sys
-sys.path.append("../../../OD-SWE-bench")
+# import sys
+# sys.path.append("../../../OD-SWE-bench")
 
 from multiprocessing import Pool
 from swebench.harness.constants import (
@@ -19,7 +19,7 @@ from swebench.harness.engine_evaluation import main as eval_engine
 from swebench.harness.engine_evaluation import evaluate_predictions
 from swebench.harness.utils import get_instances, DotDict, extract_minimal_patch
 from swebench.metrics.getters import get_eval_refs
-from context_manager import TestbedContextManager, TaskEnvContextManager
+from swebench.harness.context_manager import TestbedContextManager, TaskEnvContextManager
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
