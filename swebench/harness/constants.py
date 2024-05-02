@@ -1,3 +1,5 @@
+from enum import Enum
+
 MAP_VERSION_TO_INSTALL_SKLEARN = {
     k: {
         "python": "3.6",
@@ -559,6 +561,18 @@ TESTS_ERROR = ">>>>> Tests Errored"
 TESTS_FAILED = ">>>>> Some Tests Failed"
 TESTS_PASSED = ">>>>> All Tests Passed"
 TESTS_TIMEOUT = ">>>>> Tests Timed Out"
+
+# Constants - Patch Types
+class PatchType(Enum):
+    PATCH_GOLD = "gold"
+    PATCH_PRED = "pred"
+    PATCH_PRED_TRY = "pred_try"
+    PATCH_PRED_MINIMAL = "pred_minimal"
+    PATCH_PRED_MINIMAL_TRY = "pred_minimal_try"
+    PATCH_TEST = "test"
+
+    def __str__(self):
+        return self.value
 
 # Constants - Miscellaneous
 NON_TEST_EXTS = [".json", ".png", "csv", ".txt", ".md", ".jpg", ".jpeg", ".pkl", ".yml", ".yaml", ".toml"]

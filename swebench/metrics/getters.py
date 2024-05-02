@@ -2,15 +2,7 @@ import re
 import json
 import os
 from datasets import load_from_disk, load_dataset
-
-from swebench.metrics.constants import (
-    APPLY_PATCH_FAIL,
-    APPLY_PATCH_PASS,
-    RESET_FAILED,
-    TESTS_ERROR,
-    TESTS_TIMEOUT,
-)
-from swebench.harness.constants import KEY_INSTANCE_ID
+from swebench.harness.constants import APPLY_PATCH_PASS, KEY_INSTANCE_ID
 from swebench.metrics.log_parsers import MAP_REPO_TO_PARSER, TestStatus
 from typing import Tuple
 
@@ -52,12 +44,30 @@ def get_logs_eval(log_fp: str) -> Tuple[dict, bool]:
 
     with open(log_fp) as f:
         content = f.read()
-        if any([x in content for x in [APPLY_PATCH_FAIL, RESET_FAILED, TESTS_ERROR, TESTS_TIMEOUT, "Failed to reset task environment"]]) or APPLY_PATCH_PASS not in content:
+
+        apply_test_statements = [
+            f"{APPLY_PATCH_PASS} (test git)",
+            f"{APPLY_PATCH_PASS} (test_minimal git)",
+            f"{APPLY_PATCH_PASS} (test patch)",
+            f"{APPLY_PATCH_PASS} (test_minimal patch)",
+        ]
+
+        apply_pred_statements = [
+            f"{APPLY_PATCH_PASS} (pred git)",
+            f"{APPLY_PATCH_PASS} (pred_minimal git)",
+            f"{APPLY_PATCH_PASS} (pred patch)",
+            f"{APPLY_PATCH_PASS} (pred_minimal patch)",
+        ]
+
+        test_applied = any(test_stmt in content for test_stmt in apply_test_statements)
+        pred_applied = any(pred_stmt in content for pred_stmt in apply_pred_statements)
+
+        if not (test_applied and pred_applied):
             # Eval patch was not applied successfully
             return {}, False
 
         # Get status map of evaluation results
-        content = content.split(f"{APPLY_PATCH_PASS} (pred)")[-1]
+        content = content.split(f"Test Script")[-1]
         return log_parser(content), True
 
 
@@ -119,7 +129,13 @@ def log_path_to_sms(log_fp: str, log_parser) -> Tuple[list, bool]:
     return [sm_before, sm_after], True
 
 
-test_passed = lambda case, sm: case in sm and sm[case] == TestStatus.PASSED.value
+# test_passed = lambda case, sm: case in sm and sm[case] == TestStatus.PASSED.value
+
+def test_passed(case, sm):
+    for k in sm:
+        if k.startswith(case) and sm[k] == TestStatus.PASSED.value:
+            return True
+    return False
 
 test_failed = lambda case, sm: case not in sm or any(
     [sm[case] == status for status in [TestStatus.FAILED.value, TestStatus.ERROR.value]]
