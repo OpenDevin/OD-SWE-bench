@@ -24,6 +24,7 @@ from swebench.metrics.getters import (
     test_failed,
     test_passed,
     get_eval_refs,
+    get_repo_from_lp,
 )
 from swebench.metrics.metrics import (
     compute_fail_to_pass_unweighted,
@@ -33,6 +34,7 @@ from swebench.metrics.metrics import (
     get_resolution_status,
     ResolvedStatus,
 )
+from swebench.metrics.log_parsers import MAP_REPO_TO_PARSER
 from tqdm.auto import tqdm
 from typing import Tuple
 
@@ -384,5 +386,61 @@ def get_model_report(
         report = get_eval_report(eval_sm, eval_refs[p[KEY_INSTANCE_ID]])
         if get_resolution_status(report) == ResolvedStatus.FULL.value:
             report_map["resolved"].append(p[KEY_INSTANCE_ID])
+
+    return report_map
+
+
+def get_instance_report(
+    log_path: str,
+    swe_bench_task: str,
+) -> dict:
+    """
+    Generate a report of model evaluation results from predictions, task instances,
+    and evaluation logs.
+
+    Args:
+        log_path (str): path to evaluation log
+        swe_bench_task (str): path to a single eval reference
+    Returns:
+        report_map (dict): map of repo to report
+    """
+    eval_ref = get_eval_refs(swe_bench_task)
+    assert len(eval_ref.keys()) == 1
+    instance_id, instance = next(iter(eval_ref.items()))
+    instance = {
+        KEY_INSTANCE_ID: instance[KEY_INSTANCE_ID],
+        FAIL_TO_PASS: convert_tests_str_to_list(instance[FAIL_TO_PASS]),
+        PASS_TO_PASS: convert_tests_str_to_list(instance[PASS_TO_PASS]),
+    }
+
+    # Iterate through predictions
+    report_map = {
+        "test_errored": [],
+        "test_timeout": [],
+        "resolved": [],
+    }
+        
+    if not os.path.exists(log_path):
+        raise ValueError(f"Path {log_path} does not exist")
+    log_content = open(log_path).read()
+
+    # Get evaluation logs    
+    repo = get_repo_from_lp(log_path)
+    log_parser = MAP_REPO_TO_PARSER[repo]
+    eval_sm = log_parser(log_content)
+
+    # Check if any tests errored or timed out
+    for status in [
+        ("test_errored", TESTS_ERROR),
+        ("test_timeout", TESTS_TIMEOUT),
+    ]:
+        if status[1] in log_content:
+            report_map[status[0]].append(v[KEY_INSTANCE_ID])
+            continue
+
+    # Check if the patch was resolved
+    report = get_eval_report(eval_sm, instance)
+    if get_resolution_status(report) == ResolvedStatus.FULL.value:
+        report_map["resolved"].append(instance_id)
 
     return report_map
