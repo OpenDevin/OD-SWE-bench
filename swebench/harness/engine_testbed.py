@@ -1,8 +1,8 @@
 import argparse
 import json
-from context_manager import TestbedContextManager, TaskEnvContextManager
+from swebench.harness.context_manager import TestbedContextManager, TaskEnvContextManager
 from typing import Dict
-from utils import DotDict
+from swebench.harness.utils import DotDict
 import os.path as osp
 from multiprocessing import Pool
 

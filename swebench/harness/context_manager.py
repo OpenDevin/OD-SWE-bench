@@ -3,7 +3,7 @@ import os.path
 import shutil
 import json
 
-from constants import (
+from swebench.harness.constants import (
     APPLY_PATCH_FAIL,
     APPLY_PATCH_PASS,
     DEFAULT_CONDA_LINK,
@@ -23,7 +23,7 @@ from constants import (
     TESTS_ERROR,
 )
 from typing import Dict, List
-from utils import (
+from swebench.harness.utils import (
     clone_repo,
     get_conda_env_names,
     get_environment_yml,
