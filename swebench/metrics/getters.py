@@ -129,13 +129,7 @@ def log_path_to_sms(log_fp: str, log_parser) -> Tuple[list, bool]:
     return [sm_before, sm_after], True
 
 
-# test_passed = lambda case, sm: case in sm and sm[case] == TestStatus.PASSED.value
-
-def test_passed(case, sm):
-    for k in sm:
-        if k.startswith(case) and sm[k] == TestStatus.PASSED.value:
-            return True
-    return False
+test_passed = lambda case, sm: case in sm and sm[case] == TestStatus.PASSED.value
 
 test_failed = lambda case, sm: case not in sm or any(
     [sm[case] == status for status in [TestStatus.FAILED.value, TestStatus.ERROR.value]]

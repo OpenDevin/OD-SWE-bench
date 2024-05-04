@@ -271,12 +271,6 @@ def get_model_eval_summary(
     return summary
 
 
-def convert_tests_str_to_list(tests_str: str) -> list:
-    parsed_list = ast.literal_eval(tests_str)
-    test_names = [item.split(' ')[0] for item in parsed_list]
-    return test_names
-
-
 def get_model_report(
     model: str,
     predictions_path: str,
@@ -303,7 +297,7 @@ def get_model_report(
 
     for k, v in eval_refs.items():
         for key in [FAIL_TO_PASS, PASS_TO_PASS]:
-            v[key] = convert_tests_str_to_list(v[key])
+            v[key] = json.loads(v[key])
 
     # Get predictions
     predictions = []
@@ -343,6 +337,7 @@ def get_model_report(
             continue
         report_map["with_logs"].append(p[KEY_INSTANCE_ID])
         log_content = open(log_path).read()
+        # all_passed = "All Tests Passed" in log_content
 
         # Check if there is an apply patch failure
         if any([
@@ -408,23 +403,22 @@ def get_instance_report(
     assert len(eval_ref.keys()) == 1
     instance_id, instance = next(iter(eval_ref.items()))
     instance = {
-        KEY_INSTANCE_ID: instance[KEY_INSTANCE_ID],
-        FAIL_TO_PASS: convert_tests_str_to_list(instance[FAIL_TO_PASS]),
-        PASS_TO_PASS: convert_tests_str_to_list(instance[PASS_TO_PASS]),
+        KEY_INSTANCE_ID: instance_id,
+        FAIL_TO_PASS: json.loads(instance[FAIL_TO_PASS]),
+        PASS_TO_PASS: json.loads(instance[PASS_TO_PASS]),
     }
 
-    # Iterate through predictions
     report_map = {
         "test_errored": [],
         "test_timeout": [],
         "resolved": [],
     }
-        
+
     if not os.path.exists(log_path):
         raise ValueError(f"Path {log_path} does not exist")
     log_content = open(log_path).read()
 
-    # Get evaluation logs    
+    # Get evaluation logs
     repo = get_repo_from_lp(log_path)
     log_parser = MAP_REPO_TO_PARSER[repo]
     eval_sm = log_parser(log_content)
@@ -435,7 +429,7 @@ def get_instance_report(
         ("test_timeout", TESTS_TIMEOUT),
     ]:
         if status[1] in log_content:
-            report_map[status[0]].append(v[KEY_INSTANCE_ID])
+            report_map[status[0]].append(instance_id)
             continue
 
     # Check if the patch was resolved
