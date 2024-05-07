@@ -292,12 +292,30 @@ def get_model_report(
         report_map (dict): map of repo to report
     """
     eval_refs = get_eval_refs(swe_bench_tasks)
+    
+    fine_grained_report = {k: {
+        "gold_tests": {
+            FAIL_TO_PASS: v[FAIL_TO_PASS],
+            PASS_TO_PASS: v[PASS_TO_PASS],
+        },
+        "generated": None,
+        "with_logs": None,
+        "applied": None,
+        "test_errored": None,
+        "test_timeout": None,
+        "resolved": None,
+        "log_parse": None,
+        "eval_report": None,
+    }
+    for k,v in eval_refs.items()}
+    
     for k, v in eval_refs.items():
         eval_refs[k] = {key: v[key] for key in [KEY_INSTANCE_ID, FAIL_TO_PASS, PASS_TO_PASS]}
 
     for k, v in eval_refs.items():
         for key in [FAIL_TO_PASS, PASS_TO_PASS]:
             v[key] = json.loads(v[key])
+
 
     # Get predictions
     predictions = []
@@ -328,16 +346,19 @@ def get_model_report(
         # Check if the model patch exists
         if p["model_patch"] == None or len(p["model_patch"].strip()) == 0:
             report_map["no_generation"].append(p[KEY_INSTANCE_ID])
+            fine_grained_report[p[KEY_INSTANCE_ID]]["generated"] = False
             continue
+        fine_grained_report[p[KEY_INSTANCE_ID]]["generated"] = True
         report_map["generated"].append(p[KEY_INSTANCE_ID])
 
         # Get log file
         log_path = os.path.join(log_dir, f"{p[KEY_INSTANCE_ID]}.{model}.eval.log")
         if not os.path.exists(log_path):
+            fine_grained_report[p[KEY_INSTANCE_ID]]["with_logs"] = False
             continue
+        fine_grained_report[p[KEY_INSTANCE_ID]]["with_logs"] = True
         report_map["with_logs"].append(p[KEY_INSTANCE_ID])
         log_content = open(log_path).read()
-        # all_passed = "All Tests Passed" in log_content
 
         # Check if there is an apply patch failure
         if any([
@@ -362,6 +383,7 @@ def get_model_report(
 
         # Get evaluation logs
         eval_sm, found = get_logs_eval(log_path)
+        fine_grained_report[p[KEY_INSTANCE_ID]]["log_parse"] = eval_sm
 
         # Check if any tests errored or timed out
         for status in [
@@ -370,19 +392,28 @@ def get_model_report(
         ]:
             if status[1] in log_content:
                 report_map[status[0]].append(p[KEY_INSTANCE_ID])
+                fine_grained_report[p[KEY_INSTANCE_ID]][status[0]] = True
                 continue
+            else:
+                fine_grained_report[p[KEY_INSTANCE_ID]][status[0]] = False
 
         # Check if patch failed to apply
         if not found:
+            fine_grained_report[p[KEY_INSTANCE_ID]]["applied"] = False
             continue
         report_map["applied"].append(p[KEY_INSTANCE_ID])
+        fine_grained_report[p[KEY_INSTANCE_ID]]["applied"] = True
 
         # Check if the patch was resolved
         report = get_eval_report(eval_sm, eval_refs[p[KEY_INSTANCE_ID]])
+        fine_grained_report[p[KEY_INSTANCE_ID]]["eval_report"] = report
         if get_resolution_status(report) == ResolvedStatus.FULL.value:
             report_map["resolved"].append(p[KEY_INSTANCE_ID])
+            fine_grained_report[p[KEY_INSTANCE_ID]]["resolved"] = True
+        else:
+            fine_grained_report[p[KEY_INSTANCE_ID]]["resolved"] = False
 
-    return report_map
+    return report_map, fine_grained_report
 
 
 def get_instance_report(
