@@ -46,6 +46,7 @@ def get_logs_eval(log_fp: str) -> Tuple[dict, bool]:
         content = f.read()
 
         apply_test_statements = [
+            f"{APPLY_PATCH_PASS} (test)",
             f"{APPLY_PATCH_PASS} (test git)",
             f"{APPLY_PATCH_PASS} (test_minimal git)",
             f"{APPLY_PATCH_PASS} (test patch)",
@@ -53,6 +54,7 @@ def get_logs_eval(log_fp: str) -> Tuple[dict, bool]:
         ]
 
         apply_pred_statements = [
+            f"{APPLY_PATCH_PASS} (pred)",
             f"{APPLY_PATCH_PASS} (pred git)",
             f"{APPLY_PATCH_PASS} (pred_minimal git)",
             f"{APPLY_PATCH_PASS} (pred patch)",
