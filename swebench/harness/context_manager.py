@@ -291,9 +291,13 @@ class TestbedContextManager:
                 logger_testbed.info(f"[Testbed-DEBUG]repo_path: {repo_path}")
 
                 # Remove existing environment
-                if self.task_instances_grouped[repo][version][0]['instance_id'] == 'pylint-dev__pylint-7097' and env_name in env_list:
-                    # special case for pylint where there's a pip._vendor.pkg_resources.ContextualVersionConflict
-                    logger_testbed.info(f'[Testbed] Removing existing environment {env_name} (hack for pylint-dev__pylint-7097)')
+                REMOVE_ENV_INSTANCE_IDS = {
+                    'pylint-dev__pylint-8898', # pylint-dev__pylint__3.0
+                    'pylint-dev__pylint-7097' # pylint-dev__pylint__2.15
+                }
+                # special case for pylint where there's a pip._vendor.pkg_resources.ContextualVersionConflict
+                if self.task_instances_grouped[repo][version][0]['instance_id'] in REMOVE_ENV_INSTANCE_IDS and env_name in env_list:
+                    logger_testbed.info(f'[Testbed] Removing existing environment {env_name} (hack)')
                     self.exec(
                         f"{exec_cmd} env remove -n {env_name} -y".split(" ")
                     )
