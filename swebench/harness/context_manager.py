@@ -290,6 +290,15 @@ class TestbedContextManager:
                     )
                 logger_testbed.info(f"[Testbed-DEBUG]repo_path: {repo_path}")
 
+                # Remove existing environment
+                if self.task_instances_grouped[repo][version][0]['instance_id'] == 'pylint-dev__pylint-7097' and env_name in env_list:
+                    # special case for pylint where there's a pip._vendor.pkg_resources.ContextualVersionConflict
+                    logger_testbed.info(f'[Testbed] Removing existing environment {env_name} (hack for pylint-dev__pylint-7097)')
+                    self.exec(
+                        f"{exec_cmd} env remove -n {env_name} -y".split(" ")
+                    )
+                    env_list.remove(env_name)
+
                 # Skip if conda environment already exists
                 if env_name in env_list:
                     logger_testbed.info(
@@ -299,9 +308,6 @@ class TestbedContextManager:
 
                 # Get setup reference instance
                 setup_ref_instance = version_to_setup_ref[version]
-
-                # Remove existing environment if it exists
-                self.exec(f"{exec_cmd} env remove -n {env_name} -y || true", shell=True)
 
                 # Create conda environment according to install instructinos
                 pkgs = install["packages"] if "packages" in install else ""
