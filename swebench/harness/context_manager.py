@@ -1,6 +1,4 @@
 import logging, os, platform, subprocess, json
-import os.path
-import shutil
 
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from swebench.harness.constants import (
@@ -274,25 +272,13 @@ class TestbedContextManager:
                 else:
                     raise ValueError("Unknown computer platform " + platform.system())
 
-            # download_cmd = [
-            #     "wget",
-            #     cmd_line_install_link,
-            #     "-O",
-            #     miniconda_sh,
-            # ]
-            # self.exec(download_cmd)
-
-            # Download miniconda.sh once and copy it for later usage
-            temp_miniconda_sh = f"{os.getcwd()}/miniconda.sh"
-            if not os.path.exists(temp_miniconda_sh):
-                download_cmd = [
-                    "wget",
-                    cmd_line_install_link,
-                    "-O",
-                    temp_miniconda_sh,
-                ]
-                self.exec(download_cmd)
-            shutil.copy(temp_miniconda_sh, miniconda_sh)
+            download_cmd = [
+                "wget",
+                cmd_line_install_link,
+                "-O",
+                miniconda_sh,
+            ]
+            self.exec(download_cmd)
 
             # Install Miniconda
             install_cmd = ["bash", miniconda_sh, "-b", "-u", "-p", self.path_conda, "&&", "conda", "init", "--all"]

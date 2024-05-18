@@ -276,7 +276,6 @@ MAP_VERSION_TO_INSTALL_MATPLOTLIB.update(
             "python": "3.8",
             "packages": "requirements.txt",
             "install": "python -m pip install -e .",
-            # "pip_packages": "pytest",
             "arch_specific_packages": {
                 "aarch64": "gxx_linux-aarch64 gcc_linux-aarch64 make",
             }
@@ -290,7 +289,6 @@ MAP_VERSION_TO_INSTALL_MATPLOTLIB.update(
             "python": "3.7",
             "packages": "requirements.txt",
             "install": "python -m pip install -e .",
-            # "pip_packages": "pytest",
             "arch_specific_packages": {
                 "aarch64": "gxx_linux-aarch64 gcc_linux-aarch64 make",
             }
@@ -303,7 +301,6 @@ MAP_VERSION_TO_INSTALL_MATPLOTLIB.update(
         k: {
             "python": "3.5",
             "install": "python setup.py build; python setup.py install",
-            # "pip_packages": "pytest",
             "arch_specific_packages": {
                 "aarch64": "gxx_linux-aarch64 gcc_linux-aarch64 make",
             }
