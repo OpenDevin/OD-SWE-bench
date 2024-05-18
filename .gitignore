@@ -174,3 +174,4 @@ analysis/evaluation/*.csv
 analysis/evaluation/*.pdf
 data/repos/copies
 notebooks/
+swebench/harness/eval_data/
