@@ -53,37 +53,42 @@ log_dir = "Path to folder with per-task instance logs (same as `log_dir` from ab
 
 report = get_model_report(model, predictions_path, swe_bench_tasks, log_dir)
 
-none = sum([len(v['none']) for k, v in report.items() if isinstance(v, dict)])
-generated = sum([len(v['generated']) for k, v in report.items() if isinstance(v, dict)])
-with_logs = sum([len(v['with_logs']) for k, v in report.items() if isinstance(v, dict)])
-applied = sum([len(v['applied']) for k, v in report.items() if isinstance(v, dict)])
-resolved = sum([len(v['resolved']) for k, v in report.items() if isinstance(v, dict)])
-
-print(f"{model} Evaluation Report:")
-print(f"\tNone:      {none}")
-print(f"\tGenerated: {generated}")
-print(f"\tWith Logs: {with_logs}")
-print(f"\tApplied:   {applied}")
-print(f"\tResolved:  {resolved}")
+for k, v in report.items():
+    print(f"- {k}: {len(v)}")
 ```
 
 Given the model name, the `get_model_report` function returns a dictionary formatted as follows:
 ```json
 {
-    "<repository>": {
-        "none": ["instance_ids"],
-        "generated": ["instance_ids"],
-        "with_logs": ["instance_ids"],
-        "applied": ["instance_ids"],
-        "resolved": ["instance_ids"]
-    }
+    "no_generation": ["instance_ids"],
+    "generated": ["instance_ids"],
+    "with_logs": ["instance_ids"],
+    "install_fail": ["instance_ids"],
+    "reset_failed": ["instance_ids"],
+    "no_apply": ["instance_ids"],
+    "applied": ["instance_ids"],
+    "test_errored": ["instance_ids"],
+    "test_timeout": ["instance_ids"],
+    "resolved": ["instance_ids"],
 }
 ```
 
 Each key-value entry is a pairing of a repository with the outcome of each prediction, identified by `instance_id`:
-* `none`: The prediction was `None`.
+* `no_generation`: The prediction was `None`.
 * `generated`: The prediction was non-empty.
 * `with_logs`: A log file was created for this prediction (should `=` no. of `generated`).
-* `applied`: The prediction was applied as a patch successfully (should `<= with_logs`).
-* `resolved`: The prediction passed all tests (should `<= applied`).
+* `install_fail`: The execution environment failed to install properly.
+* `reset_failed`: The GitHub repository of the execution environment could not be checked out properly.
+* `no_apply`: The prediction was not applied as a patch successfully.
+* `applied`: The prediction was applied as a patch successfully.
+* `test_errored`: The test command errored out.
+* `test_timeout`: The test command timed out.
+* `resolved`: The prediction passed all tests.
 
+Some notes on understanding the report numbers:
+* `no_generation` + `generated` = Total number of predictions.
+* `generated` >= `applied` >= `resolved`.
+* % Resolved Rate =
+    * `resolved` / 300 for SWE-bench lite
+    * `resolved` / 2294 for SWE-bench test
+    * `resolved` / (`no_generation` + `generated`) generally

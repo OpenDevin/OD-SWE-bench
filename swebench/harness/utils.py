@@ -47,12 +47,9 @@ def get_conda_env_names(conda_source: str, env: dict = None) -> list:
         if line.strip() == "":
             continue
         parts = line.split()
-        if len(parts) == 3:
-            env_name = parts[0]
-        if len(parts) == 2:
-            env_name = parts[0]
-        elif len(parts) == 1:
-            env_name = parts[0].split('/')[-1]
+        if len(parts) <= 1:
+            continue
+        env_name = parts[1]
         env_names.append(env_name)
     return env_names
 
@@ -217,9 +214,19 @@ def get_test_directives(instance: dict) -> list:
     Returns:
         directives (list): List of test directives
     """
-    # For seq2seq code repos, testing command is fixed
-    if instance["repo"] == "swe-bench/humaneval":
+    # HumanEvalFix: For seq2seq code repos, testing command is fixed
+    if any([
+        x == instance["repo"] for x in
+        ["swe-bench/humaneval", "swe-bench/humanevalfix-python"]
+    ]):
         return ["test.py"]
+    if any([
+        x == instance["repo"] for x in
+        ["swe-bench/humanevalfix-go", "swe-bench/humanevalfix-java"]
+    ]):
+        return []
+    if instance["repo"] == "swe-bench/humanevalfix-js":
+        return ["test.js"]
 
     # Get test directives from test patch and remove non-test files
     diff_pat = r"diff --git a/.* b/(.*)"
@@ -350,14 +357,14 @@ PATCH_HUNK_PATTERN = re.compile(
 
 
 def get_first_idx(charlist):
-    """Get index of first occurence of "-" or "+" in charlist"""
+    """Get index of first occurrence of "-" or "+" in charlist"""
     first_min = charlist.index("-") if "-" in charlist else len(charlist)
     first_plus = charlist.index("+") if "+" in charlist else len(charlist)
     return min(first_min, first_plus)
 
 
 def get_last_idx(charlist):
-    """Get index of last occurence of "-" or "+" in charlist"""
+    """Get index of last occurrence of "-" or "+" in charlist"""
     char_idx = get_first_idx(charlist[::-1])
     last_idx = len(charlist) - char_idx
     return last_idx + 1

@@ -44,7 +44,7 @@ To create an appropriate execution environment for task instances from a new rep
 Determining a version for each task instance can be accomplished in a number of ways, depending on the availability + feasability with respect to each repository.
 * Scrape from code: A version is explicitly specified in the codebase (in `__init__.py` or `_version.py` for PyPI packages).
 * Scrape from web: Repositories with websites (i.e. [xarray.dev](https://xarray.dev/)) have a "Releases" or "What's New" page (i.e. [release page](https://docs.xarray.dev/en/stable/whats-new.html) for xarray). This can be scraped for information.
-* Build from code: Sometimes, version-related files (i.e. `_version.py`) are purposely ommitted by a developer (check `.gitignore` to verify). In this case, per task instance you can build the repository source code locally and extract the version number from the built codebase.
+* Build from code: Sometimes, version-related files (i.e. `_version.py`) are purposely omitted by a developer (check `.gitignore` to verify). In this case, per task instance you can build the repository source code locally and extract the version number from the built codebase.
 
 Examples and technical details for each are included in `/versioning/`. Please refer to them as needed.
 
@@ -57,7 +57,7 @@ Per repository, you must provide installation instructions per version. In `cons
     "python": "3.x", # Required
     "packages": "numpy pandas tensorflow",
     "install": "pip install -e .", # Required
-    "pip_packages": "pytest",
+    "pip_packages": ["pytest"],
 }
 ```
 These instructions can typically be inferred from the companion website or `CONTRIBUTING.md` doc that many open source repositories have.

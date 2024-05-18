@@ -17,4 +17,5 @@ dependencies:
     - rich
     - transformers>=4.34.0
     - sentencepiece
+    - tqdm
   - conda-forge::gh
