@@ -326,8 +326,23 @@ class TestbedContextManager:
                 else:
                     self.log.write(f"Repo for {repo_prefix} version {version} exists: {repo_path}; skipping")
 
+                # Remove existing environment for buggy pylint versions
+                REMOVE_ENV_INSTANCE_IDS = {
+                    'pylint-dev__pylint-8898', # pylint-dev__pylint__3.0
+                    'pylint-dev__pylint-7097'  # pylint-dev__pylint__2.15
+                    'pylint-dev__pylint-7993'  # pylint-dev__pylint__2.15
+                }
+                # special case for pylint where there's a pip._vendor.pkg_resources.ContextualVersionConflict
+                if self.task_instances_grouped[repo][version][0]['instance_id'] in REMOVE_ENV_INSTANCE_IDS and env_name in env_list:
+                    self.log.write(f'[BUGFIX (hack)] Removing existing environment {env_name}')
+                    self.exec(
+                        f"{exec_cmd} env remove -n {env_name} -y".split(" ")
+                    )
+                    env_list.remove(env_name)
+
                 # Skip if conda environment already exists
-                if env_name in env_list:
+                env_prefix = os.path.join(self.path_conda, "envs", env_name)
+                if env_prefix in env_list:
                     self.log.write(f"Environment {env_name} already exists; skipping")
                     continue
 
@@ -682,27 +697,40 @@ class TaskEnvContextManager:
                     self.exec(f"git restore {test}".split(" "))
 
         # Apply patch to testbed directory
+
+        # Try git command first
         apply_cmd = (
             f"git apply -v -R {patch_path}" if revert else f"git apply -v {patch_path}"
         )
         out_patch = self.exec(apply_cmd.split(" "), raise_error=False, check=False)
         os.remove(patch_path)
+        command = "git"
+
+        # If git command fails, try patch command
+        if out_patch.returncode != 0:
+            command = "patch"
+            original_directory = os.getcwd()
+            os.chdir(os.path.join(os.path.dirname(self.testbed.rstrip("/")), self.testbed_name))
+            apply_cmd = (f"patch -R --batch --fuzz=5 -p1 -i {patch_path}" if revert \
+                else f"patch --batch --fuzz=5 -p1 -i {patch_path}")
+            out_patch = self.exec(apply_cmd.split(" "), raise_error=False, check=False)
+            os.chdir(original_directory)
 
         log_cmd = "Revert" if revert else "Apply"
         if out_patch.returncode != 0:
             # Patch apply failed
-            self.log.write(f"{log_cmd} patch failed ({patch_type})", level=ERROR)
+            self.log.write(f"{log_cmd} patch failed ({patch_type}) ({command})", level=ERROR)
             with open(self.log_file, "a") as f:
-                f.write(f"{APPLY_PATCH_FAIL}; ({patch_type})\nOutput:\n")
+                f.write(f"{APPLY_PATCH_FAIL}; ({patch_type}) ({command})\nOutput:\n")
                 f.write(out_patch.stdout)
                 if out_patch.stderr:
                     f.write(out_patch.stderr)
             return False
 
         # Patch apply succeeded
-        self.log.write(f"{log_cmd} patch successful ({patch_type})")
+        self.log.write(f"{log_cmd} patch successful ({patch_type}) ({command})")
         with open(self.log_file, "a") as f:
-            f.write(f"{APPLY_PATCH_PASS} ({patch_type})\n")
+            f.write(f"{APPLY_PATCH_PASS} ({patch_type}) ({command})\n")
         return True
 
     def run_tests_task(self, instance: dict):

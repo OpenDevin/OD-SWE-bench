@@ -9,7 +9,7 @@ from swebench.harness.constants import (
     PatchType,
 )
 from swebench.harness.context_manager import TaskEnvContextManager
-from swebench.harness.engine_validation import setup_testbed
+from swebench.harness.engine_testbed import setup_testbed
 from swebench.harness.utils import (
     extract_minimal_patch,
     get_instances,
@@ -17,7 +17,6 @@ from swebench.harness.utils import (
     DotDict
 )
 from tqdm.auto import tqdm
-
 
 def overwrite_ablation(tcm: TaskEnvContextManager, task_instance: dict):
     """
@@ -144,6 +143,8 @@ def main(args):
     """
     if args.num_workers is None:
         args.num_workers = cpu_count()
+
+    # TODO: remove pylint and reinstall
 
     predictions = get_instances(args.predictions_path)
 
