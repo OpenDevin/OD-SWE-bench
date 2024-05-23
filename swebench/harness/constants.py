@@ -298,7 +298,13 @@ for k in ["3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "4.0", "4.1", "4.2", "4.3", 
 
 
 MAP_VERSION_TO_INSTALL_ASTROPY = {
-    k: {"python": "3.9", "install": "pip install -e .[test]"}
+    k: {
+        "python": "3.9",
+        "pre_install": [
+            'sed -i \'s/"setuptools"/"setuptools<69.0.0"/\' pyproject.toml'
+        ],
+        "install": "pip install -e .[test]"
+    }
     for k in
         ["0.1", "0.2", "0.3", "0.4", "1.1", "1.2", "1.3", "3.0", "3.1", "3.2"] + \
         ["4.1", "4.2", "4.3", "5.0", "5.1", "5.2"]
